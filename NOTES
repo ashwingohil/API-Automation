@@ -1,0 +1,355 @@
+Refer to documentation API contract in google drive - API Automation
+Practise on Postman tool of doing operations CRUD operations like AddPlace, GetPlace, DeletePlace, UpdatePlace
+
+
+1)AddPlace - you will receive a response with place_id
+
+2)GetPlace - from the id you received from AddPlace. That is use GET and in parameters enter place_id - value
+Note that in the response you will get the body information just like the body "provided" in AddPlace operation
+
+3)DeletePlace - body will be required. it can be POST/DELETE. anything you want to alter or modify on server requires
+operation like post delete put but not get
+Here in the body (refer contract), write the place_id which you got the response in AddPlace OR look in the parameters
+of GetPlace because this id we want to delete
+Response will be status: OK
+
+4)UpdatePlace - PUT is the operation if we have to update anything on server. But POST can also be used. In real world
+implementations, we use GET and POST usually
+First goto collection in Postman and hit the AddPlace again so that we again add the place. Because we deleted it
+Now from the contract copy the body but change the place_id from the AddPlace Response place_id. Cos this is what we
+want to update
+Response: Address successfully updated
+Now how to validate, check if the address is reflecting. The new address which is "70 summer walk". Use GetPlace and see
+In updatePlace , copy the place_id cos this is what we updated and copy it in GetPlace query parameter values
+and check if address got updated (changed) in the body section. Check in the response of Get
+
+---------------------------------------------------
+
+Now lets automate. Operations are
+AddPlace --> UpdatePlace with NewAddress --> GetPlace to valide if NewAddress is reflected in response
+Files: End2End.java
+        End2EndPayload.java
+
+1) AddPlace. Look into the created current AddPlace in PostMan collections. Use that information like body information
+and create the method AddPlace in code. Refer End2End.java
+Check that response has
+{
+    "status": "OK",
+    "place_id": "69f3712402b7e70da812535115d8a41b",
+    "scope": "APP",
+    "reference": "0e632fb2f160635ad2301473368b614d0e632fb2f160635ad2301473368b614d",
+    "id": "0e632fb2f160635ad2301473368b614d"
+}
+
+Here place_id can differ. We also see there is entity scope. I can assert that in AddPlace method but not needed
+We are interested in the response and to get the place_id received in the response. So that I can use this place_id
+in UpdatePlace to change the place.
+For asserting, there is method equalTo from Hamcrest class . It is static method. Check for imports
+
+2)UpdatePlace. Look into the contract and the UpdatePlace collection in Postman. I need information of the body of this
+update collection. In here I need to change the place_id to the Addplace place_id we collected from response. This is the
+change of address we are doing for this placeid.
+Here we use other supporting class End2EndPayload and write all the data in there. There are 2 variables. one placeId which
+gets updated when AddPlace is executed. Using this placeId we replace it with hardcoded placeid value in updatePlace body
+information and change the address to newAddress we provided in supporting class
+
+3)GetPlace. Now I need to validatek if the address got changed in the body section received in the response of getPlace (see
+the postman collection getplace)
+
+------------------------------------------------------------------------------------------------------
+Files:
+    JsonTraversal.java
+    JsonTraversalPayload.java
+
+JSON (complex traversals)
+Open json editor: - http://jsoneditoronline.org/
+Refer - JSON(complex traversals) doc in google driver - API Automation
+Copy the json in jsoneditor and you will see the nodes and schema clearly
+copy the same raw json into the Payload file
+
+---------------------------------------------------------------------------------------------------------
+
+Dynamically build json Payload through parameters
+Parameterize tests using TestNg
+Files:
+    DynamicJson.java
+    DynamicJsonPayload.java
+
+Refer Library API (Book Library) in google driver - API documentation
+I am going to add a book by Addbook Post method given in API. Here the problem is when I code hardcoded values in
+the program, i cannot run the test again because response will be book already exists. Which means when I first add a book
+I also need to delete it in order for the same test to run again.
+Also how to provide various books to be added is solved here (dynamically building json payload)
+And how TestNG feature of dataprovider I can parameterize the test
+
+Refer Library API (Book Library) and build a test AddBook in postman. operation is post. [BUT THERE IS SOME PROBLEM, RESPONSE IS NOT THERE]
+Checked with code, it works with response
+
+I use annotation of TestNg which is @dataprovider. While writing the method, it will prompt the return type to be something
+not void that is Object[] or Object[][]. Read the notification when you put void as written in this method
+Worked perfectly.
+
+When running the test again though I have added and deleted those data, it can run multiple time. I can re enter change
+values in dataprovider and try it out too
+
+NOTE: the body values are strict, isbn = letters, aisle = numbers. Follow the way it is written in dataprovider else there
+is problem
+
+--------------------------------------------------------------------------------------------------------------------
+
+Now I will use Jira api to use it for automating tests.
+Download Jira. It has a 90 day trial. Use another email address, you will get another working version
+When installed
+(in linux - chmod a+x atlassian-jira-software-8.13.3-x64.bin
+            ./atlassian-jira-software-8.13.3-x64.bin)
+HOW TO RUN JIRA ON LINUX: sudo /etc/init.d/jira start
+
+Do not use the cloud mode in later stages on installation which happens through the web. Create a user account
+Then, refer api for jira
+(search for jira rest api authentication)
+https://developer.atlassian.com/server/jira/platform/cookie-based-authentication/#step-1--create-a-new-session-using-the-jira-rest-api
+
+Refer authentication api and try the Get method to login into the system. session id is received in response. This is used
+over and over again over headers to maintain the session
+
+Login response:
+{
+    "session": {
+        "name": "JSESSIONID",
+        "value": "6493A5FC67E8D2EAFC5CEB7001829864"
+    },
+    "loginInfo": {
+        "loginCount": 3,
+        "previousLoginTime": "2021-02-10T16:14:57.153+0530"
+    }
+}
+Login: baseURI - http://localhost:8080
+resource URI for login is - /rest/auth/1/session  (/jira wont come look at the localhost website)
+
+For other tasks to automate:
+baseURI: http://localhost:8080
+resourse uri will differ depending on the api
+
+CREATE ISSUE:
+baseURI: http://localhost:8080
+
+Then search "create an issue jira api" in google and follow the link
+https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/
+Yes read it, you will understand what all is needed like there are resources to get project names also
+But for creating, see that
+resource (create issue) : /rest/api/2/issue/  [there is some problem with localhost or cloud so api/2 will be used for
+                                                localhost. It is for stable version. I have that
+                                                api/3 is latest version
+This is the api
+https://developer.atlassian.com/cloud/jira/platform/rest/v2/intro/#version <-- this is the one to refer
+
+https://developer.atlassian.com/server/jira/platform/jira-rest-api-examples/
+
+In the login api, see they have mentioned how to set cookie the {} for cookie
+Then goto createIssue api and copy the body required in jsoneditor for clarity
+This is the body found from the link above
+{
+    "fields": {
+       "project":
+       {
+          "key": "TEST"
+       },
+       "summary": "REST ye merry gentlemen.",
+       "description": "Creating of an issue using project keys and issue type names using the REST API",
+       "issuetype": {
+          "name": "Bug"
+       }
+   }
+}
+Key is gotten by opening the web system and getting key in projects within ()brackets
+Surf through the system by creating an issue manually you will know that issuetype is mandatory and options are like "Bug"
+summary and description you can give. Key can be obtained
+
+Response:
+{
+    "id": "10001",
+    "key": "RES-2",
+    "self": "http://localhost:8080/rest/api/2/issue/10001"
+}
+
+GET PROJECTS:
+You can get project information by simply doing GET on http://localhost:8080/rest/api/2/project
+with the session cookie as same. All mentioned in the api link as above
+
+ADD COMMENT:
+Refer this api
+https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-comments/#api-rest-api-2-issue-issueidorkey-comment-post
+uri: http://localhost:8080
+resource: /rest/api/2/issue/{issueIdOrKey}/comment (POST)
+From new request for issue, you will get issue id in response
+Remove {} from the resource and replace with issue id
+Body is:
+{
+  "visibility": {
+    "type": "role",
+    "value": "Administrators"
+  },
+  "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eget venenatis elit. Duis eu justo eget augue iaculis fermentum. Sed semper quam laoreet nisi egestas at posuere augue semper."
+}
+Change the text in "body" above
+
+UPDATE COMMENT:
+Refer this api
+https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-comments/#api-rest-api-2-issue-issueidorkey-comment-id-put
+uri: http://localhost:8080
+resource:  /rest/api/2/issue/{issueIdOrKey}/comment/{id} (PUT)
+issueId from request issue
+and id will be from postcomment, where the response comes for that comment.
+This is needed to be updated
+Remove {} braces and replace it with issueid and id
+
+body is:
+{
+  "visibility": {
+    "type": "role",
+    "value": "Administrators"
+  },
+  "body": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eget venenatis elit. Duis eu justo eget augue iaculis fermentum. Sed semper quam laoreet nisi egestas at posuere augue semper."
+}
+Check in web Jira you will see the change
+
+-----------------------------------------------------------------------------------------------------------------------
+Now automate Jira flow: Login --> Create issue --> Add comment --> Add attachment to issue --Get Issue details and verify
+                        ----> Delete issue
+
+Lessons are pathparameter, queryparameter, multipart(attachment)
+Files:
+    JiraFlow.java
+    JiraFlowPayload.java
+
+Add attachment:
+
+Enable Attachments in Jira. localhost:8080. login. settings icon, advanced, attachments - enable attachments
+Refer the api doc
+https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issue-attachments/#api-rest-api-2-issue-issueidorkey-attachments-post
+resource: /rest/api/2/issue/{issueIdOrKey}/attachments (POST)
+but how do you send an attachment
+
+curl -D- -u admin:admin -X POST -H "X-Atlassian-Token: no-check" -F "file=@myfile.txt" https://your-domain.atlassian.net/rest/api/2/issue/TEST-123/attachments
+
+means admin:admin is going with the session object
+header will change to "X-Atlassian-Token: no-check"
+another header will come - .header("Content-type","multipart/form-data") [mentioned in api]
+then .multipart() method
+
+Get issue:
+Is important. refer code
+Pathparameter and queryParameter. refer api
+https://developer.atlassian.com/cloud/jira/platform/rest/v2/api-group-issues/#api-rest-api-2-issue-createmeta-get
+--------------------------------------------------------------------------------------------------------------------------
+
+OAUTH2.0 concepts
+IMPORT ALL JARS OF SELENIUM
+Logout from google accounts for this to see the flow
+
+Files:  OauthFlow.java
+
+googledriver - API automation read OauthOutline document, then understanding OAuth2 document
+Likewise, import request collection of Postman provided in file OAuthexplore.postman_collection
+Follow the "understanding Oauth2 document" , you will be able to build the requests and steps
+
+Then comes automation. Just refer OAuth+2+contract file in the drive. The necessary endpoints and parameters are given
+In the actualGetCourse() method, uncomment first section for this part of learning and see the flow. In next
+section where deserialization happens, uncomment that section and learn the flow
+
+VERY VERY IMPORTANT NOTE. THERE ARE 2 FOLDERS IN THIS PROJECT FOLDER
+1)MinimalREST which is minimal version of folder - RestAssuredJars
+2)RestAssuredJars
+
+I HAVE IMPORTED MiminalREST, JUST EXCLUDE guava-28.2-android.jar FROM THE DEPENDENCIES IN PROJECT STRUCTURE
+Then selenium will also work with RestAssured
+
+First, I get the code by web automation from the signed in URL. Use it as a parameter for performing AccessTokenRequest
+Then use accessToken to perform actualRequest to getCourse
+Refer the OAuth+2+contract file and the code
+
+There is one concept of grant_type (security mechanisms)
+Hit Postman and go into authorization tab
+explore know various grant types: authorization_code, client_credentials
+Watch video - how to deal with client credentials grant type (Section10)
+
+-----------------------------------------------------------------------------------------------------------------------
+
+Deserialization Concepts
+
+Files:
+    OauthFlow.java
+    POJO package - GetCourse.java, Api.java, Courses.java, Mobile.java, WebAutomation.java -- pojo classes
+
+Continuing the Postman Collection explore for Oauth on RahulShetty course. Exectute the api requests to first get the
+code by copy pasting URL from postman (getCode()) and copy that code from the url in next request exchangeCode()
+in query parameters. You will get access token. Copy this token and paste it in parameters of actualRequest() to
+get the course contents json response. Copy the response in jsoneditor and know how many variables are there in json.
+
+If it serialization(build json)
+deserialization(get values from the response)
+either way you have to create POJO classes
+
+The json as response to getCourse() is very complex.
+To understand nested json and building pojo classes from it is the skill.
+Refer Creating POJO classes... and Strategies in parsing... from SECTION 11
+
+Here List variables for classes returning as object is used. Can i take it as fixed array reading from json?
+
+I created POJO classes to deserialize but it didnt work. Just copy pasted POJO files downloaded from the course
+and it worked
+If pojo classes are not made correctly, it will give errors.
+
+Follow this section SECTION11, specially "how to showcase API testing experience...". There the information
+about certificate upon completion is given and to tag the instructor to grow your network for jobs
+
+-----------------------------------------------------------------------------------------------------------------------
+Serialization concepts
+
+Refer doc ADD-DeletePlaceAPIs to form a addPlace request. Here rather than putting json data in the body of
+we use pojo classes and make object out of it and pass that object to the body() method
+
+Files:
+    SerializationFlow.java
+    AddPlace.java, Location.java - pojo classes in package POJO
+
+------------------------------------------------------------------------------------------------------------------------
+SpecBuilders
+    Files:
+        SpecBuilders.java
+        (and supporting Pojo classes) included in the code
+
+Read chapter for information SECTION13 - practical example
+
+-----------------------------------------------------------------------------------------------------------------------
+Build a list of methods and class names object creation which are throughout the course
+Like RequestSpecification oj = new RequestSpecification()
+-----------------------------------------------------------------------------------------------------------------------
+
+CUCUMBER BASICS:
+Refer cucumber basics doc in google drive - api automation
+Refer API_CucumberFramework on this section
+
+------------------------------------------------------------------------------------------------------------------------
+
+Now Excel data fetching is a technique
+And hashMap can be used to put values for .body() we pass .body(map) after filling the map with mapobject.put(" "," ")
+.put takes key value pairs.
+
+This data can be fetched by excel data fetching also.
+Watch the 2 videos SECTION19 - VIDEO 142,143
+
+Folder - API_CucumberFramework
+File - ExcelFetching.java
+
+
+
+
+
+
+
+
+
+
+
+

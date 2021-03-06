@@ -31,7 +31,7 @@ public class OauthFlow {
     public void getCode(){
 
         String emailText = "ashwin.k.gohil@gmail.com";
-        String password = "!Nopassword9979737596";
+        String password = "yourpassword";
 
         //These are the parameters and endpoint(baseURI)
         String baseURI = "https://accounts.google.com/o/oauth2/v2/auth";
